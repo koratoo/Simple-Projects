@@ -1,5 +1,4 @@
 
-![image](https://github.com/user-attachments/assets/5b4c0ad5-436a-4b58-9887-23281b87a742)
 
 
 
@@ -10,24 +9,22 @@
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.*;
 
 public class TodoListGame {
     private JFrame frame;
     private DefaultListModel<String> listModel;
     private JList<String> todoList;
     private JTextField inputField;
-    private JLabel timerLabel, scoreLabel;
-    private int score = 0;
-    private int timeLeft = 60; // 60초 제한
-    private Timer timer;
 
     public TodoListGame() {
-        frame = new JFrame("To-Do List Game");
+        frame = new JFrame("To-Do List Manager");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setSize(400, 500);
 
         // 리스트 모델과 리스트
         listModel = new DefaultListModel<>();
+        loadTasks(); // Load tasks from file
         todoList = new JList<>(listModel);
         JScrollPane scrollPane = new JScrollPane(todoList);
 
@@ -40,10 +37,6 @@ public class TodoListGame {
         JButton completeButton = new JButton("Complete Task");
         completeButton.addActionListener(e -> completeTask());
 
-        // 타이머와 점수 레이블
-        timerLabel = new JLabel("Time Left: " + timeLeft + "s");
-        scoreLabel = new JLabel("Score: " + score);
-
         // 레이아웃 설정
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout());
@@ -51,18 +44,13 @@ public class TodoListGame {
         panel.add(addButton, BorderLayout.EAST);
 
         JPanel bottomPanel = new JPanel();
-        bottomPanel.setLayout(new GridLayout(1, 2));
+        bottomPanel.setLayout(new GridLayout(1, 1));
         bottomPanel.add(completeButton);
-        bottomPanel.add(timerLabel);
 
         frame.setLayout(new BorderLayout());
         frame.add(scrollPane, BorderLayout.CENTER);
         frame.add(panel, BorderLayout.NORTH);
         frame.add(bottomPanel, BorderLayout.SOUTH);
-        frame.add(scoreLabel, BorderLayout.WEST);
-
-        // 타이머 설정
-        startTimer();
 
         frame.setVisible(true);
     }
@@ -71,6 +59,7 @@ public class TodoListGame {
         String task = inputField.getText().trim();
         if (!task.isEmpty()) {
             listModel.addElement(task);
+            saveTasks(); // Save tasks to file
             inputField.setText("");
         }
     }
@@ -79,30 +68,37 @@ public class TodoListGame {
         int selectedIndex = todoList.getSelectedIndex();
         if (selectedIndex != -1) {
             listModel.remove(selectedIndex);
-            score += 10; // 점수 추가
-            scoreLabel.setText("Score: " + score);
+            saveTasks(); // Save updated tasks to file
         }
     }
 
-    private void startTimer() {
-        timer = new Timer(1000, new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                timeLeft--;
-                timerLabel.setText("Time Left: " + timeLeft + "s");
-
-                if (timeLeft <= 0) {
-                    timer.stop();
-                    JOptionPane.showMessageDialog(frame, "Time's up! Your score: " + score);
-                    System.exit(0);
-                }
+    private void saveTasks() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("tasks.txt"))) {
+            for (int i = 0; i < listModel.getSize(); i++) {
+                writer.write(listModel.getElementAt(i));
+                writer.newLine();
             }
-        });
-        timer.start();
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, "Error saving tasks: " + e.getMessage());
+        }
+    }
+
+    private void loadTasks() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("tasks.txt"))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                listModel.addElement(line);
+            }
+        } catch (FileNotFoundException e) {
+            // 파일이 없으면 무시 (최초 실행 시)
+        } catch (IOException e) {
+            JOptionPane.showMessageDialog(frame, "Error loading tasks: " + e.getMessage());
+        }
     }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(TodoListGame::new);
     }
 }
+
 ```
